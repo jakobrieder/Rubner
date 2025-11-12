@@ -7,12 +7,12 @@ colors = ["Herz", "Karo", "Pik", "Kreuz"]
 values = ["2", "3", "4", "5", "6", "7", "8", "9",
           "10", "Bube", "Dame", "König", "Ass"]
 
-# Ziehen der Karten
+# Ziehen der Karten und Mischeln
 
 def shuffleAndDraw():
-  deck = [(v, c) for c in colors for v in values]
+  deck = [(v, c) for c in colors for v in values] # Liste aus Tupeln
   random.shuffle(deck)
-  return deck[:cards_per_hand] # Slicing ein Teil der Liste wird zurückgegeben - ersten 5 Karten
+  return deck[:cards_per_hand] # Slicing - ersten 5 Karten zurückgegeben
 
 def isPair(hand):
   valueOnly = [v for (v, c) in hand]
@@ -26,7 +26,7 @@ def isTwoPair(hand):
   pairs = 0
   counted = []
   for v in valueOnly:
-    if v not in counted and valueOnly.count(v) == 2: # wenn noch nicht dgezählt und ein Paar
+    if v not in counted and valueOnly.count(v) == 2: # wenn noch nicht gezählt und ein Paar
       pairs += 1
       counted.append(v) # hinzufügen zu der Liste der gezählten Paare
   return pairs == 2
@@ -58,11 +58,11 @@ def isStraight(hand):
   valueOnly = [v for (v, c) in hand]
   nums = [order.index(v) for v in valueOnly] # Karten index geben damit man schaue kann ob aufeinanderfolgen
   nums.sort() # aufsteigende Sortierung
-  # Keine doppelten Karten
+  # Keine doppelten Karten - dann kann es keine Strasse sein
   if len(set(nums)) != len(nums):
     return False
 
-  if all(nums[i + 1] == nums[i] + 1 for i in range(len(nums) - 1)): #prüfen ob Karten aufeinanderfogen; wenn alle true im all Ausrdruck --> alle Werte aufeinanderfolgend; len-1 weil 4 zwischenräume
+  if all(nums[i + 1] == nums[i] + 1 for i in range(len(nums) - 1)): #prüfen ob Karten aufeinanderfolgen; wenn alle true im all Ausrdruck --> alle Werte aufeinanderfolgend; len-1 weil 4 zwischenräume i +1 muss noch in Liste liegen
     return True
 
   # Spezialfall Wheel (Ass, 2, 3, 4, 5)
@@ -82,6 +82,19 @@ def isRoyalFlush(hand):
   nums.sort()
   return nums[-5:] == [8, 9, 10, 11, 12]  # letzten 5 Werte von nums müssen index für royal flush sein (und geiche Farbe wird oben durch Straight gepürft)
 
+# Echte Prozentwerte (Wikipedia)
+truePercents = {
+  "Royal Flush": 0.000154,
+  "Straight Flush": 0.001385,
+  "Four of a Kind": 0.02401,
+  "Full House": 0.1441,
+  "Flush": 0.1965,
+  "Straight": 0.3925,
+  "Three of a Kind": 2.1128,
+  "Two Pair": 4.7539,
+  "One Pair": 42.2569,
+  "High Card": 50.1177
+}
 
 def main():
   results = {
@@ -96,10 +109,14 @@ def main():
     "One Pair": 0,
     "High Card": 0
   }
-# Spielen und Hand ziehen
+
+  lastHand = None
+
+  #Spielen
   for i in range(games):
     hand = shuffleAndDraw()
-#Zählen der Kombinationen
+    lastHand = hand
+    #Zählen der Kombinationen
     if isRoyalFlush(hand):
       results["Royal Flush"] += 1
     elif isStraightFlush(hand):
@@ -121,14 +138,27 @@ def main():
     else:
       results["High Card"] += 1
 
+  print("Letzte gezogene Hand:")
+  print(", ".join(f"({v}, {c})" for (v, c) in lastHand))
 
+  print(f"\nNach {games} Spielen mit {cards_per_hand} Karten pro Hand:\n")
+  print(f"{'Kombination':17s} | {'Anzahl':>8s} | {'Sim %':>10s}")
+  print("-" * 42)
+  simPercents = {}
+  for name, count in results.items():
+    percent = round(count / games * 100, 5)
+    simPercents[name] = percent
+    print(f"{name:17s} | {count:8d} | {percent:10.5f}")
 
-  print(f"\nNach {games} Spielen mit {cards_per_hand} Karten pro Hnad:\n")
-  print(f"{'Kombination':17s} | {'Anzahl':>8s} | {'%':>8s}") # 17 und 8 Zeichen lang; links und rechtsbündig (ChatGPT Ausgabe zur schöneren Formatierung)
-  print("-" * 38)
-  for name, count in results.items(): # Auswertung des Diciotnary
-    percent = round(count / games * 100, 5) # % ausrechnen und auf 5 Kommastellen runden
-    print(f"{name:17s} | {count:8d} | {percent:8.5f}")
+  # Vergleich mit den echten Werten
+  print("\nVergleich mit echten Werten (Wikipedia):")
+  print(f"{'Kombination':17s} | {'Echt %':>10s} | {'Sim %':>10s} | {'Diff pp':>10s}")
+  print("-" * 62)
+  for name in results.keys():
+    true_p = truePercents[name]
+    sim_p = simPercents[name]
+    diff = sim_p - true_p  # Prozentpunkte (Sim - Echt)
+    print(f"{name:17s} | {true_p:10.5f} | {sim_p:10.5f} | {diff:10.5f}")
 
 if __name__ == "__main__":
   main()
